@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Verify shop exists
     const { data: shop } = await supabase

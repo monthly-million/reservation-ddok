@@ -6,16 +6,17 @@ import ReservationForm from './reservation-form';
 export const revalidate = 60;
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export default async function ReservationPage({ params }: PageProps) {
-  const supabase = createClient();
+  const { slug } = await params;
+  const supabase = await createClient();
 
   const { data: shop } = await supabase
     .from('shops')
     .select('*')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single<Shop>();
 
   if (!shop) {

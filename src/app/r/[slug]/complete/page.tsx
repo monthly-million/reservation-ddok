@@ -1,13 +1,13 @@
 import Link from 'next/link';
 
 interface PageProps {
-  params: { slug: string };
-  searchParams: { name?: string; phone?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ name?: string; phone?: string }>;
 }
 
-export default function CompletePage({ params, searchParams }: PageProps) {
-  const name = searchParams.name || '';
-  const phone = searchParams.phone || '';
+export default async function CompletePage({ params, searchParams }: PageProps) {
+  const { slug } = await params;
+  const { name = '', phone = '' } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50 px-6">
@@ -40,7 +40,7 @@ export default function CompletePage({ params, searchParams }: PageProps) {
 
         <div className="animate-fade-in-delay-2 mt-8">
           <Link
-            href={`/r/${params.slug}`}
+            href={`/r/${slug}`}
             className="text-sm text-[#FF6B35] hover:underline"
           >
             ← 돌아가기
