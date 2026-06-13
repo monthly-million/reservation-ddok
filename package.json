@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "pages:build": "opennextjs-cloudflare build && cp .open-next/worker.js .open-next/assets/_worker.js",
+    "pages:build": "opennextjs-cloudflare build && mv .open-next/worker.js .open-next/_worker.js",
     "deploy": "npm run pages:build && wrangler pages deploy",
     "preview": "npm run pages:build && wrangler pages dev"
   },
