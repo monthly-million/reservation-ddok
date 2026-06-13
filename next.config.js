@@ -6,4 +6,8 @@ const withSerwist = withSerwistInit({
 });
 
 /** @type {import('next').NextConfig} */
-module.exports = withSerwist({});
+module.exports = withSerwist({
+  images: {
+    unoptimized: true,
+  },
+});
