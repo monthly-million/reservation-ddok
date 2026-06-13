@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "예약뚝",
-    short_name: "예약뚝",
+    name: "예약똑",
+    short_name: "예약똑",
     description: "간편한 예약 링크 생성 서비스",
     start_url: "/dashboard",
     display: "standalone",

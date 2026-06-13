@@ -65,7 +65,7 @@ export default function LandingPage() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-center text-2xl font-bold text-gray-900 md:text-3xl">
-            왜 예약뚝?
+            왜 예약똑?
           </h2>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             <FeatureCard
@@ -122,7 +122,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-100 px-6 py-8 text-center text-sm text-gray-400">
-        <p>© 2026 예약뚝. 소상공인을 응원합니다.</p>
+        <p>© 2026 예약똑. 소상공인을 응원합니다.</p>
       </footer>
     </main>
   );
