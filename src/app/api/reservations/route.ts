@@ -17,7 +17,7 @@ function getSupabase() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { shop_id, customer_name, customer_phone, answers, idempotency_key } = body;
+    const { shop_id, customer_name, customer_phone, answers, idempotency_key, reserved_date, reserved_time } = body;
 
     if (!customer_name?.trim() || !customer_phone?.trim()) {
       return NextResponse.json({ error: '이름과 전화번호는 필수입니다' }, { status: 400 });
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     // Verify shop exists
     const { data: shop, error: shopErr } = await supabase
       .from('shops')
-      .select('id')
+      .select('id, max_per_slot')
       .eq('id', shop_id)
       .single();
 
@@ -57,6 +57,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, id: existing.id });
     }
 
+    // Validate slot availability if date/time provided
+    if (reserved_date && reserved_time) {
+      const { data: existingBookings } = await supabase
+        .from('reservations')
+        .select('id')
+        .eq('shop_id', shop_id)
+        .eq('reserved_date', reserved_date)
+        .eq('reserved_time', reserved_time)
+        .in('status', ['new', 'confirmed']);
+
+      if (existingBookings && existingBookings.length >= shop.max_per_slot) {
+        return NextResponse.json({ error: '해당 시간은 이미 예약이 마감되었습니다' }, { status: 409 });
+      }
+    }
+
     // Insert reservation
     const { data, error } = await supabase
       .from('reservations')
@@ -66,6 +81,8 @@ export async function POST(request: NextRequest) {
         customer_phone: phoneDigits,
         answers: answers || [],
         idempotency_key,
+        reserved_date: reserved_date || null,
+        reserved_time: reserved_time || null,
         status: 'new',
       })
       .select('id')

@@ -2,21 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Shop, Question } from '@/types/database';
+import type { Shop, Question, ShopSchedule } from '@/types/database';
+import Calendar from '@/components/Calendar';
+import TimeSlotPicker from '@/components/TimeSlotPicker';
 
 interface Props {
   shop: Shop;
   questions: Question[];
+  schedules: ShopSchedule[];
 }
 
-export default function ReservationForm({ shop, questions }: Props) {
+export default function ReservationForm({ shop, questions, schedules }: Props) {
   const router = useRouter();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const hasSchedules = schedules.length > 0;
+  const closedDays = schedules.filter((s) => s.is_closed).map((s) => s.day_of_week);
 
   useEffect(() => {
     setIdempotencyKey(crypto.randomUUID());
@@ -46,6 +54,11 @@ export default function ReservationForm({ shop, questions }: Props) {
       return;
     }
 
+    if (hasSchedules && (!selectedDate || !selectedTime)) {
+      setError('날짜와 시간을 선택해주세요');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
 
@@ -66,6 +79,8 @@ export default function ReservationForm({ shop, questions }: Props) {
           customer_phone: phone.replace(/\D/g, ''),
           answers: formattedAnswers,
           idempotency_key: idempotencyKey,
+          reserved_date: selectedDate || null,
+          reserved_time: selectedTime || null,
         }),
       });
 
@@ -84,6 +99,36 @@ export default function ReservationForm({ shop, questions }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <h2 className="text-[18px] font-bold text-gray-900">예약 정보</h2>
+
+      {/* Date & Time selection */}
+      {hasSchedules && (
+        <>
+          <div>
+            <label className="block text-[14px] font-medium text-gray-600 mb-3">날짜 선택</label>
+            <Calendar
+              selectedDate={selectedDate}
+              onSelect={(date) => {
+                setSelectedDate(date);
+                setSelectedTime(null);
+              }}
+              advanceDays={shop.advance_days}
+              closedDays={closedDays}
+            />
+          </div>
+
+          {selectedDate && (
+            <div>
+              <label className="block text-[14px] font-medium text-gray-600 mb-3">시간 선택</label>
+              <TimeSlotPicker
+                shopId={shop.id}
+                date={selectedDate}
+                selectedTime={selectedTime}
+                onSelect={setSelectedTime}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       {/* Name */}
       <div>

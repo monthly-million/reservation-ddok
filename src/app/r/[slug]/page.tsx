@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import type { Shop, Question } from '@/types/database';
+import type { Shop, Question, ShopSchedule } from '@/types/database';
 import ReservationForm from './reservation-form';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +29,13 @@ export default async function ReservationPage({ params }: PageProps) {
     .eq('shop_id', shop.id)
     .order('sort_order', { ascending: true })
     .returns<Question[]>();
+
+  const { data: schedules } = await supabase
+    .from('shop_schedules')
+    .select('*')
+    .eq('shop_id', shop.id)
+    .order('day_of_week', { ascending: true })
+    .returns<ShopSchedule[]>();
 
   return (
     <main className="min-h-screen bg-white">
@@ -82,7 +89,7 @@ export default async function ReservationPage({ params }: PageProps) {
         )}
 
         {/* Form */}
-        <ReservationForm shop={shop} questions={questions || []} />
+        <ReservationForm shop={shop} questions={questions || []} schedules={schedules || []} />
       </div>
     </main>
   );

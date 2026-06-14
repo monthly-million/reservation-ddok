@@ -8,6 +8,9 @@ export interface Shop {
   hours: string;
   message: string | null;
   menu_images: string[];
+  slot_duration_min: number;
+  max_per_slot: number;
+  advance_days: number;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +32,8 @@ export interface Reservation {
   customer_name: string;
   customer_phone: string;
   answers: ReservationAnswer[];
+  reserved_date: string | null;
+  reserved_time: string | null;
   status: 'new' | 'confirmed';
   idempotency_key: string;
   created_at: string;
@@ -39,4 +44,20 @@ export interface ReservationAnswer {
   question_title: string;
   type: 'text' | 'radio' | 'image';
   value: string;
+}
+
+export interface ShopSchedule {
+  id: string;
+  shop_id: string;
+  day_of_week: number;
+  open_time: string;
+  close_time: string;
+  is_closed: boolean;
+}
+
+export interface ShopClosure {
+  id: string;
+  shop_id: string;
+  closed_date: string;
+  reason: string | null;
 }

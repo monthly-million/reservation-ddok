@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { generateSlug } from '@/lib/utils';
 import QuestionBuilder, { type QuestionItem } from '@/components/QuestionBuilder';
+import ScheduleEditor, { type ScheduleConfig, getDefaultScheduleConfig } from '@/components/ScheduleEditor';
 
 function resizeImage(file: File, maxWidth: number): Promise<Blob> {
   return new Promise((resolve) => {
@@ -40,6 +41,7 @@ export default function ShopNewPage() {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleConfig>(getDefaultScheduleConfig());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [successSlug, setSuccessSlug] = useState('');
@@ -109,6 +111,9 @@ export default function ShopNewPage() {
           hours: hours.trim(),
           message: message.trim() || null,
           menu_images: imageUrls,
+          slot_duration_min: schedule.slot_duration_min,
+          max_per_slot: schedule.max_per_slot,
+          advance_days: schedule.advance_days,
         })
         .select()
         .single();
@@ -127,6 +132,17 @@ export default function ShopNewPage() {
         const { error: qError } = await supabase.from('questions').insert(questionRows);
         if (qError) throw qError;
       }
+
+      // Create schedule rows
+      const scheduleRows = schedule.schedules.map((s) => ({
+        shop_id: shop.id,
+        day_of_week: s.day_of_week,
+        open_time: s.open_time,
+        close_time: s.close_time,
+        is_closed: s.is_closed,
+      }));
+      const { error: schedError } = await supabase.from('shop_schedules').insert(scheduleRows);
+      if (schedError) throw schedError;
 
       setSuccessSlug(slug);
     } catch (err: any) {
@@ -276,6 +292,13 @@ export default function ShopNewPage() {
         <h2 className="text-base font-semibold text-gray-800">사전예약질문</h2>
         <p className="text-xs text-gray-500">고객이 예약 시 답변할 질문을 만들어주세요</p>
         <QuestionBuilder questions={questions} onChange={setQuestions} />
+      </section>
+
+      {/* Section 3: 예약 스케줄 설정 */}
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold text-gray-800">예약 스케줄</h2>
+        <p className="text-xs text-gray-500">영업 시간과 예약 단위를 설정해주세요</p>
+        <ScheduleEditor value={schedule} onChange={setSchedule} />
       </section>
 
       {/* Submit */}
