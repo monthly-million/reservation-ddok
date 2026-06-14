@@ -89,7 +89,13 @@ export default function ReservationForm({ shop, questions, schedules }: Props) {
         throw new Error(data.error || '예약에 실패했습니다');
       }
 
-      router.push(`/r/${shop.slug}/complete?name=${encodeURIComponent(name.trim())}&phone=${encodeURIComponent(phone)}`);
+      const params = new URLSearchParams({
+        name: name.trim(),
+        phone,
+        ...(selectedDate && { date: selectedDate }),
+        ...(selectedTime && { time: selectedTime }),
+      });
+      router.push(`/r/${shop.slug}/complete?${params.toString()}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : '예약에 실패했습니다');
       setSubmitting(false);

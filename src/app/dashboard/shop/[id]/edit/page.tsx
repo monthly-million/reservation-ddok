@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase/client';
 import QuestionBuilder, { type QuestionItem } from '@/components/QuestionBuilder';
-import type { Shop, Question } from '@/types/database';
+import ScheduleEditor, { type ScheduleConfig, getDefaultScheduleConfig } from '@/components/ScheduleEditor';
+import type { Shop, Question, ShopSchedule, ShopClosure } from '@/types/database';
 
 function resizeImage(file: File, maxWidth: number): Promise<Blob> {
   return new Promise((resolve) => {
@@ -45,6 +46,7 @@ export default function ShopEditPage() {
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
   const [originalQuestionIds, setOriginalQuestionIds] = useState<string[]>([]);
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>(getDefaultScheduleConfig());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -85,6 +87,36 @@ export default function ShopEditPage() {
         setQuestions(mapped);
         setOriginalQuestionIds(qs.map((q: Question) => q.id));
       }
+
+      // Load schedules
+      const { data: schedules } = await supabase
+        .from('shop_schedules')
+        .select('*')
+        .eq('shop_id', shopId)
+        .order('day_of_week');
+
+      const { data: closures } = await supabase
+        .from('shop_closures')
+        .select('*')
+        .eq('shop_id', shopId)
+        .order('closed_date');
+
+      if (schedules && schedules.length > 0) {
+        setScheduleConfig({
+          schedules: (schedules as ShopSchedule[]).map((s) => ({
+            day_of_week: s.day_of_week,
+            open_time: s.open_time,
+            close_time: s.close_time,
+            is_closed: s.is_closed,
+          })),
+          slot_duration_min: shop.slot_duration_min || 60,
+          max_per_slot: shop.max_per_slot || 1,
+          advance_days: shop.advance_days || 14,
+          auto_close_holidays: false,
+          closures: (closures as ShopClosure[] || []).map((c) => c.closed_date),
+        });
+      }
+
       setLoading(false);
     }
     load();
@@ -156,10 +188,35 @@ export default function ShopEditPage() {
           hours: hours.trim(),
           message: message.trim() || null,
           menu_images: allImages,
+          slot_duration_min: scheduleConfig.slot_duration_min,
+          max_per_slot: scheduleConfig.max_per_slot,
+          advance_days: scheduleConfig.advance_days,
           updated_at: new Date().toISOString(),
         })
         .eq('id', shopId);
       if (shopError) throw shopError;
+
+      // Upsert schedules
+      await supabase.from('shop_schedules').delete().eq('shop_id', shopId);
+      const scheduleRows = scheduleConfig.schedules.map((s) => ({
+        shop_id: shopId,
+        day_of_week: s.day_of_week,
+        open_time: s.open_time,
+        close_time: s.close_time,
+        is_closed: s.is_closed,
+      }));
+      await supabase.from('shop_schedules').insert(scheduleRows);
+
+      // Upsert closures
+      await supabase.from('shop_closures').delete().eq('shop_id', shopId);
+      if (scheduleConfig.closures.length > 0) {
+        const closureRows = scheduleConfig.closures.map((date) => ({
+          shop_id: shopId,
+          closed_date: date,
+          reason: null,
+        }));
+        await supabase.from('shop_closures').insert(closureRows);
+      }
 
       // Handle questions: delete removed, upsert existing/new
       const currentIds = questions.filter((q) => originalQuestionIds.includes(q.id)).map((q) => q.id);
@@ -311,6 +368,11 @@ export default function ShopEditPage() {
             </button>
           )}
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-base font-semibold text-gray-800">예약 스케줄</h2>
+        <ScheduleEditor value={scheduleConfig} onChange={setScheduleConfig} />
       </section>
 
       <section className="space-y-4">

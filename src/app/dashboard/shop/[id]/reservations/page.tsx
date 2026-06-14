@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { createBrowserClient } from '@/lib/supabase/client';
 import type { Reservation, ReservationAnswer } from '@/types/database';
 
+type DateFilter = 'all' | 'today' | 'tomorrow' | 'week';
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -17,6 +19,29 @@ function timeAgo(dateStr: string): string {
   return `${days}일 전`;
 }
 
+function getDateStr(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
+function getEndOfWeek(): string {
+  const d = new Date();
+  const dayOfWeek = d.getDay();
+  const daysUntilSunday = 7 - dayOfWeek;
+  d.setDate(d.getDate() + daysUntilSunday);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatReservedDateTime(date: string | null, time: string | null): string | null {
+  if (!date) return null;
+  const d = new Date(date + 'T00:00:00');
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const timeStr = time ? ` ${time.slice(0, 5)}` : '';
+  return `${month}/${day}${timeStr}`;
+}
+
 export default function ReservationsPage() {
   const params = useParams();
   const shopId = params.id as string;
@@ -26,15 +51,25 @@ export default function ReservationsPage() {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const PAGE_SIZE = 20;
 
   const fetchReservations = useCallback(async (offset = 0) => {
-    const { data } = await supabase
+    let query = supabase
       .from('reservations')
       .select('*')
       .eq('shop_id', shopId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + PAGE_SIZE - 1);
+      .order('created_at', { ascending: false });
+
+    if (dateFilter === 'today') {
+      query = query.eq('reserved_date', getDateStr(0));
+    } else if (dateFilter === 'tomorrow') {
+      query = query.eq('reserved_date', getDateStr(1));
+    } else if (dateFilter === 'week') {
+      query = query.gte('reserved_date', getDateStr(0)).lte('reserved_date', getEndOfWeek());
+    }
+
+    const { data } = await query.range(offset, offset + PAGE_SIZE - 1);
 
     const rows = (data || []) as Reservation[];
     if (offset === 0) {
@@ -44,9 +79,10 @@ export default function ReservationsPage() {
     }
     setHasMore(rows.length === PAGE_SIZE);
     setLoading(false);
-  }, [shopId, supabase]);
+  }, [shopId, supabase, dateFilter]);
 
   useEffect(() => {
+    setLoading(true);
     fetchReservations();
 
     const channel = supabase
@@ -72,6 +108,13 @@ export default function ReservationsPage() {
     );
   }
 
+  const filters: { key: DateFilter; label: string }[] = [
+    { key: 'all', label: '전체' },
+    { key: 'today', label: '오늘' },
+    { key: 'tomorrow', label: '내일' },
+    { key: 'week', label: '이번 주' },
+  ];
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -82,7 +125,7 @@ export default function ReservationsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">예약 관리</h1>
         <Link
           href={`/dashboard/shop/${shopId}/edit`}
@@ -92,11 +135,29 @@ export default function ReservationsPage() {
         </Link>
       </div>
 
+      {/* Date filter tabs */}
+      <div className="flex gap-2 mb-6">
+        {filters.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setDateFilter(f.key)}
+            className={`px-3 h-[32px] rounded-full text-[13px] font-medium transition-colors ${
+              dateFilter === f.key
+                ? 'bg-[#FF6B35] text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {reservations.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-5xl mb-4">📋</div>
           <p className="text-gray-600">
-            아직 예약이 없어요.<br />
+            {dateFilter === 'all' ? '아직 예약이 없어요.' : '해당 기간에 예약이 없어요.'}
+            <br />
             링크를 SNS에 공유해보세요!
           </p>
         </div>
@@ -127,7 +188,12 @@ export default function ReservationsPage() {
                   </div>
                   <span className="text-xs text-gray-400">{timeAgo(r.created_at)}</span>
                 </div>
-                <div className="mt-1">
+                <div className="mt-1 flex items-center gap-3">
+                  {formatReservedDateTime(r.reserved_date, r.reserved_time) && (
+                    <span className="text-[13px] font-medium text-gray-700">
+                      {formatReservedDateTime(r.reserved_date, r.reserved_time)}
+                    </span>
+                  )}
                   <a
                     href={`tel:${r.customer_phone}`}
                     onClick={(e) => e.stopPropagation()}
