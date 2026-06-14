@@ -1,3 +1,5 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,9 +7,10 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   }
   body {
-    @apply antialiased text-gray-900;
+    @apply antialiased text-gray-900 bg-white;
   }
 }
 
@@ -19,25 +22,7 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  .animate-fade-in {
-    animation: fadeIn 0.6s ease-out forwards;
-    opacity: 0;
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  .animate-fade-in-delay-1 {
-    animation: fadeIn 0.6s ease-out 0.2s forwards;
-    opacity: 0;
-  }
-  .animate-fade-in-delay-2 {
-    animation: fadeIn 0.6s ease-out 0.4s forwards;
-    opacity: 0;
-  }
-  .animate-fade-in-delay-3 {
-    animation: fadeIn 0.6s ease-out 0.6s forwards;
-    opacity: 0;
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
 }

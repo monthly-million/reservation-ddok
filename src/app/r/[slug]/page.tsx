@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Shop, Question } from '@/types/database';
 import ReservationForm from './reservation-form';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -31,40 +31,36 @@ export default async function ReservationPage({ params }: PageProps) {
     .returns<Question[]>();
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-6 py-6">
-        <div className="mx-auto max-w-lg">
-          <h1 className="text-2xl font-bold text-gray-900">{shop.name}</h1>
-          <div className="mt-3 space-y-1 text-sm text-gray-500">
+      <header className="px-6 pt-12 pb-6">
+        <div className="mx-auto max-w-[480px]">
+          <h1 className="text-[24px] font-bold text-gray-900">{shop.name}</h1>
+          <div className="mt-3 space-y-1">
             {shop.location && (
-              <p className="flex items-center gap-2">
-                <span>📍</span> {shop.location}
-              </p>
+              <p className="text-[14px] text-gray-500">{shop.location}</p>
             )}
             {shop.hours && (
-              <p className="flex items-center gap-2">
-                <span>🕐</span> {shop.hours}
-              </p>
+              <p className="text-[14px] text-gray-400">{shop.hours}</p>
             )}
             {shop.phone && (
-              <p className="flex items-center gap-2">
-                <span>📞</span> {shop.phone}
-              </p>
+              <a href={`tel:${shop.phone}`} className="text-[14px] text-[#FF6B35]">
+                {shop.phone}
+              </a>
             )}
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-lg px-6 py-6">
-        {/* Menu images carousel */}
+      <div className="mx-auto max-w-[480px] px-6 pb-10">
+        {/* Menu images */}
         {shop.menu_images && shop.menu_images.length > 0 && (
-          <div className="mb-6">
-            <div className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide">
+          <div className="mb-8">
+            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide -mx-6 px-6">
               {shop.menu_images.map((url, i) => (
                 <div
                   key={i}
-                  className="flex-none w-64 h-44 snap-center rounded-xl overflow-hidden bg-gray-100"
+                  className="flex-none w-[260px] h-[180px] snap-center rounded-2xl overflow-hidden bg-gray-100"
                 >
                   <img
                     src={url}
@@ -74,25 +70,18 @@ export default async function ReservationPage({ params }: PageProps) {
                 </div>
               ))}
             </div>
-            {shop.menu_images.length > 1 && (
-              <div className="flex justify-center gap-1.5 mt-2">
-                {shop.menu_images.map((_, i) => (
-                  <div key={i} className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-                ))}
-              </div>
-            )}
           </div>
         )}
 
         {/* Owner message */}
         {shop.message && (
-          <div className="mb-6 rounded-xl bg-orange-50 border border-orange-100 p-4">
-            <p className="text-xs font-medium text-[#FF6B35] mb-1">사장님 전달내용</p>
-            <p className="text-sm text-gray-700 leading-relaxed">{shop.message}</p>
+          <div className="mb-8 rounded-2xl bg-[#f7f7f7] p-5">
+            <p className="text-[13px] font-medium text-gray-400 mb-1">사장님 메시지</p>
+            <p className="text-[15px] text-gray-700 leading-relaxed">{shop.message}</p>
           </div>
         )}
 
-        {/* Reservation form */}
+        {/* Form */}
         <ReservationForm shop={shop} questions={questions || []} />
       </div>
     </main>

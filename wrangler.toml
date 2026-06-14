@@ -1,8 +1,0 @@
-name = "reservation-ddok"
-compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".open-next"
-
-[vars]
-NEXT_PUBLIC_SUPABASE_URL = "https://gdxvmwqmcfmhtsjhrfzy.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkeHZtd3FtY2ZtaHRzamhyZnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyOTc0OTMsImV4cCI6MjA5Njg3MzQ5M30.HmxNjtn2-N2lMNPm8k2EdsKDhz44h9NZFqxx7Hreyo0"

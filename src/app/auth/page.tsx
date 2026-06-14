@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -13,6 +13,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const otpRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -38,25 +39,25 @@ export default function AuthPage() {
       setError('올바른 휴대폰 번호를 입력해주세요');
       return;
     }
-
     setLoading(true);
     const digits = phone.replace(/\D/g, '');
     const e164 = `+82${digits.slice(1)}`;
 
     try {
-      const { error } = await supabase.functions.invoke('send-phone-otp', {
+      const { data, error: fnError } = await supabase.functions.invoke('send-phone-otp', {
         body: { phone: e164 },
       });
-      if (error) throw new Error(error.message || '인증번호 발송에 실패했습니다');
+      if (fnError) throw new Error(data?.error || '인증번호 발송 실패');
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || '인증번호 발송에 실패했습니다');
+      setError(err.message || '인증번호 발송 실패');
       return;
     }
-
     setLoading(false);
     setStep('otp');
+    setOtp('');
     setCooldown(60);
+    setTimeout(() => otpRef.current?.focus(), 100);
   }, [phone, supabase.functions]);
 
   const handleVerifyOtp = useCallback(async () => {
@@ -65,90 +66,111 @@ export default function AuthPage() {
       setError('6자리 인증번호를 입력해주세요');
       return;
     }
-
     setLoading(true);
     const digits = phone.replace(/\D/g, '');
     const e164 = `+82${digits.slice(1)}`;
 
     try {
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-phone-otp', {
+      const { data, error: fnError } = await supabase.functions.invoke('verify-phone-otp', {
         body: { phone: e164, otp },
       });
-      if (verifyError) throw new Error(verifyError.message || '인증번호 확인에 실패했습니다');
+      if (fnError || !data?.token_hash) throw new Error(data?.error || '인증 확인 실패');
 
       const { error: authError } = await supabase.auth.verifyOtp({
-        token_hash: verifyData.token_hash,
+        token_hash: data.token_hash,
         type: 'magiclink',
       });
-      if (authError) throw authError;
+      if (authError) throw new Error(authError.message || '로그인 실패');
+      router.push('/dashboard');
     } catch (err: any) {
       setLoading(false);
-      setError(err.message || '인증번호 확인에 실패했습니다');
-      return;
+      setError(err.message || '인증 확인 실패');
     }
-
-    setLoading(false);
-    router.push('/dashboard');
   }, [otp, phone, supabase.functions, supabase.auth, router]);
 
+  useEffect(() => {
+    if (step === 'otp' && otp.length === 6 && !loading) handleVerifyOtp();
+  }, [otp, step, loading, handleVerifyOtp]);
+
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">예약똑</h1>
-          <p className="mt-2 text-gray-600">휴대폰 번호로 로그인</p>
-        </div>
-
+    <main className="min-h-screen flex flex-col bg-white px-6 pt-[120px] pb-10">
+      <div className="w-full max-w-[400px] mx-auto flex-1 flex flex-col">
         {step === 'phone' ? (
-          <div className="space-y-4">
-            <input
-              type="tel"
-              placeholder="010-1234-5678"
-              value={phone}
-              onChange={(e) => setPhone(formatPhone(e.target.value))}
-              maxLength={13}
-              className="w-full rounded-lg border px-4 py-3 focus:border-blue-500 focus:outline-none"
-            />
-            <button
-              onClick={handleSendOtp}
-              disabled={loading}
-              className="w-full rounded-lg bg-blue-600 py-3 text-white font-medium disabled:opacity-50"
-            >
-              {loading ? '전송 중...' : '인증번호 받기'}
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              {phone}로 전송된 인증번호를 입력해주세요
+          <>
+            <h1 className="text-[26px] font-bold text-gray-900 leading-tight">
+              휴대폰 번호를<br />입력해 주세요
+            </h1>
+            <p className="mt-3 text-[15px] text-gray-400">
+              인증번호가 문자로 전송됩니다
             </p>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="인증번호 6자리"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              maxLength={6}
-              className="w-full rounded-lg border px-4 py-3 text-center text-xl tracking-widest focus:border-blue-500 focus:outline-none"
-            />
-            <button
-              onClick={handleVerifyOtp}
-              disabled={loading}
-              className="w-full rounded-lg bg-blue-600 py-3 text-white font-medium disabled:opacity-50"
-            >
-              {loading ? '확인 중...' : '확인'}
-            </button>
-            <button
-              onClick={handleSendOtp}
-              disabled={cooldown > 0 || loading}
-              className="w-full text-sm text-gray-500 disabled:opacity-50"
-            >
-              {cooldown > 0 ? `재전송 (${cooldown}초)` : '인증번호 재전송'}
-            </button>
-          </div>
-        )}
 
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+            <div className="mt-10">
+              <input
+                type="tel"
+                placeholder="010-0000-0000"
+                value={phone}
+                onChange={(e) => setPhone(formatPhone(e.target.value))}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
+                maxLength={13}
+                autoFocus
+                className="w-full text-[24px] font-medium text-gray-900 placeholder:text-gray-200 border-b-2 border-gray-200 pb-3 outline-none transition-colors focus:border-[#FF6B35] bg-transparent"
+              />
+            </div>
+
+            {error && <p className="mt-4 text-[13px] text-red-500">{error}</p>}
+          </>
+        ) : (
+          <>
+            <h1 className="text-[26px] font-bold text-gray-900 leading-tight">
+              인증번호를<br />입력해 주세요
+            </h1>
+            <p className="mt-3 text-[15px] text-gray-400">
+              {phone}으로 전송된 6자리 번호
+            </p>
+
+            <div className="mt-10">
+              <input
+                ref={otpRef}
+                type="text"
+                inputMode="numeric"
+                placeholder="000000"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                maxLength={6}
+                className="w-full text-[32px] font-bold text-gray-900 placeholder:text-gray-200 border-b-2 border-gray-200 pb-3 outline-none tracking-[0.3em] transition-colors focus:border-[#FF6B35] bg-transparent"
+              />
+            </div>
+
+            <div className="mt-4 flex items-center gap-4">
+              <button
+                onClick={() => { setStep('phone'); setOtp(''); setError(''); }}
+                className="text-[14px] text-gray-400"
+              >
+                번호 변경
+              </button>
+              <button
+                onClick={handleSendOtp}
+                disabled={cooldown > 0 || loading}
+                className="text-[14px] text-[#FF6B35] font-medium disabled:text-gray-300"
+              >
+                {cooldown > 0 ? `재전송 ${cooldown}초` : '재전송'}
+              </button>
+            </div>
+
+            {error && <p className="mt-4 text-[13px] text-red-500">{error}</p>}
+          </>
+        )}
+      </div>
+
+      {/* Fixed bottom CTA */}
+      <div className="w-full max-w-[400px] mx-auto safe-bottom">
+        <button
+          onClick={step === 'phone' ? handleSendOtp : handleVerifyOtp}
+          disabled={loading || (step === 'phone' ? !validatePhone(phone) : otp.length !== 6)}
+          className="w-full h-[56px] rounded-2xl bg-[#FF6B35] text-[16px] font-semibold text-white transition-all active:scale-[0.97] disabled:bg-gray-100 disabled:text-gray-300"
+        >
+          {loading ? '처리 중...' : step === 'phone' ? '인증번호 받기' : '확인'}
+        </button>
       </div>
     </main>
   );

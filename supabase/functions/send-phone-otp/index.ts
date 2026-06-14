@@ -2,8 +2,15 @@ import { createClient } from "@supabase/supabase-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
+
+const PROXY_URL =
+  Deno.env.get("ALIGO_PROXY_URL") ?? "https://dogwithus-aligo-proxy.fly.dev";
+const PROXY_SECRET =
+  Deno.env.get("ALIGO_PROXY_SECRET") ??
+  "97af25dba03e7b933f628496464ded8245f2aef6827a63f90de89887ac737bc3";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,9 +28,6 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const aligoProxyUrl = Deno.env.get("ALIGO_PROXY_URL")!;
-    const aligoProxySecret = Deno.env.get("ALIGO_PROXY_SECRET")!;
-
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Rate limit: max 5 OTPs per phone per hour
@@ -66,11 +70,11 @@ Deno.serve(async (req) => {
     }
 
     // Send SMS via Aligo proxy
-    const smsRes = await fetch(`${aligoProxyUrl}/send-sms`, {
+    const smsRes = await fetch(`${PROXY_URL}/send-sms`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${aligoProxySecret}`,
+        Authorization: `Bearer ${PROXY_SECRET}`,
       },
       body: JSON.stringify({
         receiver: phone.replace("+82", "0"),
@@ -80,13 +84,14 @@ Deno.serve(async (req) => {
 
     if (!smsRes.ok) {
       const errBody = await smsRes.text();
-      throw new Error(`SMS send failed: ${errBody}`);
+      throw new Error(`SMS send failed: ${smsRes.status} ${errBody}`);
     }
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    console.error("send-phone-otp error:", err);
     return new Response(JSON.stringify({ error: (err as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
