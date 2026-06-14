@@ -43,19 +43,21 @@ export default function AuthPage() {
     const digits = phone.replace(/\D/g, '');
     const e164 = `+82${digits.slice(1)}`;
 
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      phone: e164,
-    });
-
-    setLoading(false);
-    if (authError) {
-      setError(authError.message);
+    try {
+      const { error } = await supabase.functions.invoke('send-phone-otp', {
+        body: { phone: e164 },
+      });
+      if (error) throw new Error(error.message || '인증번호 발송에 실패했습니다');
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || '인증번호 발송에 실패했습니다');
       return;
     }
 
+    setLoading(false);
     setStep('otp');
     setCooldown(60);
-  }, [phone, supabase.auth]);
+  }, [phone, supabase.functions]);
 
   const handleVerifyOtp = useCallback(async () => {
     setError('');
@@ -68,20 +70,26 @@ export default function AuthPage() {
     const digits = phone.replace(/\D/g, '');
     const e164 = `+82${digits.slice(1)}`;
 
-    const { error: authError } = await supabase.auth.verifyOtp({
-      phone: e164,
-      token: otp,
-      type: 'sms',
-    });
+    try {
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-phone-otp', {
+        body: { phone: e164, otp },
+      });
+      if (verifyError) throw new Error(verifyError.message || '인증번호 확인에 실패했습니다');
 
-    setLoading(false);
-    if (authError) {
-      setError(authError.message);
+      const { error: authError } = await supabase.auth.verifyOtp({
+        token_hash: verifyData.token_hash,
+        type: 'magiclink',
+      });
+      if (authError) throw authError;
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || '인증번호 확인에 실패했습니다');
       return;
     }
 
+    setLoading(false);
     router.push('/dashboard');
-  }, [otp, phone, supabase.auth, router]);
+  }, [otp, phone, supabase.functions, supabase.auth, router]);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
