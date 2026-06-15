@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ name?: string; phone?: string; date?: string; time?: string }>;
+  searchParams: Promise<{ name?: string; phone?: string; date?: string; time?: string; ref?: string }>;
 }
 
 function formatDate(dateStr: string): string {
@@ -20,7 +20,7 @@ function formatTime(timeStr: string): string {
 
 export default async function CompletePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const { name = '', phone = '', date = '', time = '' } = await searchParams;
+  const { name = '', phone = '', date = '', time = '', ref = '' } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-white px-6">
@@ -35,8 +35,16 @@ export default async function CompletePage({ params, searchParams }: PageProps) 
           </p>
         </div>
 
+        {ref && (
+          <div className="animate-fade-in-delay-1 mt-6 py-4 px-5 rounded-2xl bg-orange-50 border border-orange-100">
+            <p className="text-[12px] font-medium text-gray-400 mb-1">예약번호</p>
+            <p className="text-[28px] font-bold text-[#FF6B35] tracking-wider">#{ref}</p>
+            <p className="mt-1 text-[12px] text-gray-400">이 번호로 예약 확인이 가능해요</p>
+          </div>
+        )}
+
         {date && time && (
-          <div className="animate-fade-in-delay-1 mt-8 py-5 px-6 rounded-2xl bg-gray-50">
+          <div className="animate-fade-in-delay-1 mt-4 py-5 px-6 rounded-2xl bg-gray-50">
             <p className="text-[22px] font-bold text-gray-900">
               {formatDate(date)} {formatTime(time)}
             </p>
@@ -59,10 +67,18 @@ export default async function CompletePage({ params, searchParams }: PageProps) 
           </div>
         )}
 
-        <div className="animate-fade-in-delay-2 mt-8">
+        <div className="animate-fade-in-delay-2 mt-8 space-y-3">
+          {ref && (
+            <Link
+              href={`/r/${slug}/my/${ref}`}
+              className="block text-[14px] text-[#FF6B35] hover:underline"
+            >
+              예약 확인하기 →
+            </Link>
+          )}
           <Link
             href={`/r/${slug}`}
-            className="text-[14px] text-[#FF6B35] hover:underline"
+            className="block text-[14px] text-gray-400 hover:underline"
           >
             ← 돌아가기
           </Link>

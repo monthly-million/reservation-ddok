@@ -26,15 +26,34 @@ export interface Question {
   created_at: string;
 }
 
+export interface Customer {
+  id: string;
+  shop_id: string;
+  name: string;
+  phone: string;
+  visit_count: number;
+  no_show_count: number;
+  last_visit: string | null;
+  tags: string[];
+  memo: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const RESERVATION_STATUSES = ['new', 'confirmed', 'completed', 'no_show', 'cancelled'] as const;
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+
 export interface Reservation {
   id: string;
   shop_id: string;
+  customer_id: string | null;
   customer_name: string;
   customer_phone: string;
   answers: ReservationAnswer[];
   reserved_date: string | null;
   reserved_time: string | null;
-  status: 'new' | 'confirmed';
+  status: ReservationStatus;
+  reference_code: string | null;
   idempotency_key: string;
   created_at: string;
 }

@@ -89,11 +89,13 @@ export default function ReservationForm({ shop, questions, schedules }: Props) {
         throw new Error(data.error || '예약에 실패했습니다');
       }
 
+      const result = await res.json();
       const params = new URLSearchParams({
         name: name.trim(),
         phone,
         ...(selectedDate && { date: selectedDate }),
         ...(selectedTime && { time: selectedTime }),
+        ...(result.reference_code && { ref: result.reference_code }),
       });
       router.push(`/r/${shop.slug}/complete?${params.toString()}`);
     } catch (err) {

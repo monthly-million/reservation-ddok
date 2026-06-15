@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { createBrowserClient } from '@/lib/supabase/client';
+import BottomNav from '@/components/BottomNav';
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const supabase = createBrowserClient();
   const [loading, setLoading] = useState(true);
+
+  const inShopContext = /\/dashboard\/shop\/[^/]+\//.test(pathname);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -56,9 +59,11 @@ export default function DashboardLayout({
       </header>
 
       {/* Content */}
-      <main className="flex-1 max-w-[600px] w-full mx-auto px-5 py-6">
+      <main className={`flex-1 max-w-[600px] w-full mx-auto px-5 py-6 ${inShopContext ? 'pb-[72px]' : ''}`}>
         {children}
       </main>
+
+      {inShopContext && <BottomNav />}
     </div>
   );
 }

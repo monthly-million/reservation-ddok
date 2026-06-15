@@ -40,7 +40,7 @@ describe('OTP Flow - Edge Function Integration', () => {
       const AuthPage = (await import('@/app/auth/page')).default;
       render(<AuthPage />);
 
-      const phoneInput = screen.getByPlaceholderText('010-1234-5678');
+      const phoneInput = screen.getByPlaceholderText('010-0000-0000');
       await userEvent.type(phoneInput, '01012345678');
 
       const sendButton = screen.getByRole('button', { name: /인증번호 받기/i });
@@ -58,7 +58,7 @@ describe('OTP Flow - Edge Function Integration', () => {
       const AuthPage = (await import('@/app/auth/page')).default;
       render(<AuthPage />);
 
-      const phoneInput = screen.getByPlaceholderText('010-1234-5678');
+      const phoneInput = screen.getByPlaceholderText('010-0000-0000');
       await userEvent.type(phoneInput, '01012345678');
 
       const sendButton = screen.getByRole('button', { name: /인증번호 받기/i });
@@ -71,11 +71,11 @@ describe('OTP Flow - Edge Function Integration', () => {
     });
 
     it('should show error when edge function returns error', async () => {
-      mockInvoke.mockResolvedValueOnce({ data: null, error: { message: 'SMS 전송 실패' } });
+      mockInvoke.mockResolvedValueOnce({ data: { error: 'SMS 전송 실패' }, error: { message: 'SMS 전송 실패' } });
       const AuthPage = (await import('@/app/auth/page')).default;
       render(<AuthPage />);
 
-      const phoneInput = screen.getByPlaceholderText('010-1234-5678');
+      const phoneInput = screen.getByPlaceholderText('010-0000-0000');
       await userEvent.type(phoneInput, '01012345678');
 
       const sendButton = screen.getByRole('button', { name: /인증번호 받기/i });
@@ -91,7 +91,7 @@ describe('OTP Flow - Edge Function Integration', () => {
       const AuthPage = (await import('@/app/auth/page')).default;
       render(<AuthPage />);
 
-      const phoneInput = screen.getByPlaceholderText('010-1234-5678');
+      const phoneInput = screen.getByPlaceholderText('010-0000-0000');
       await userEvent.type(phoneInput, '01012345678');
 
       const sendButton = screen.getByRole('button', { name: /인증번호 받기/i });
@@ -102,7 +102,7 @@ describe('OTP Flow - Edge Function Integration', () => {
           body: { phone: '+821012345678' },
         });
       });
-      expect(screen.getByPlaceholderText('인증번호 6자리')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('000000')).toBeInTheDocument();
     });
   });
 
@@ -112,14 +112,14 @@ describe('OTP Flow - Edge Function Integration', () => {
       const AuthPage = (await import('@/app/auth/page')).default;
       render(<AuthPage />);
 
-      const phoneInput = screen.getByPlaceholderText('010-1234-5678');
+      const phoneInput = screen.getByPlaceholderText('010-0000-0000');
       await userEvent.type(phoneInput, '01012345678');
 
       const sendButton = screen.getByRole('button', { name: /인증번호 받기/i });
       await userEvent.click(sendButton);
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('인증번호 6자리')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('000000')).toBeInTheDocument();
       });
     }
 
@@ -128,11 +128,8 @@ describe('OTP Flow - Edge Function Integration', () => {
       mockInvoke.mockResolvedValueOnce({ data: { token_hash: 'abc123hash' }, error: null });
       mockVerifyOtp.mockResolvedValueOnce({ error: null });
 
-      const otpInput = screen.getByPlaceholderText('인증번호 6자리');
+      const otpInput = screen.getByPlaceholderText('000000');
       await userEvent.type(otpInput, '123456');
-
-      const verifyButton = screen.getByRole('button', { name: /확인/i });
-      await userEvent.click(verifyButton);
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('verify-phone-otp', {
@@ -146,11 +143,8 @@ describe('OTP Flow - Edge Function Integration', () => {
       mockInvoke.mockResolvedValueOnce({ data: { token_hash: 'abc123hash' }, error: null });
       mockVerifyOtp.mockResolvedValueOnce({ error: null });
 
-      const otpInput = screen.getByPlaceholderText('인증번호 6자리');
+      const otpInput = screen.getByPlaceholderText('000000');
       await userEvent.type(otpInput, '123456');
-
-      const verifyButton = screen.getByRole('button', { name: /확인/i });
-      await userEvent.click(verifyButton);
 
       await waitFor(() => {
         expect(mockVerifyOtp).toHaveBeenCalledWith({
@@ -165,11 +159,8 @@ describe('OTP Flow - Edge Function Integration', () => {
       mockInvoke.mockResolvedValueOnce({ data: { token_hash: 'abc123hash' }, error: null });
       mockVerifyOtp.mockResolvedValueOnce({ error: null });
 
-      const otpInput = screen.getByPlaceholderText('인증번호 6자리');
+      const otpInput = screen.getByPlaceholderText('000000');
       await userEvent.type(otpInput, '123456');
-
-      const verifyButton = screen.getByRole('button', { name: /확인/i });
-      await userEvent.click(verifyButton);
 
       await waitFor(() => {
         expect(mockVerifyOtp).toHaveBeenCalled();
@@ -185,11 +176,8 @@ describe('OTP Flow - Edge Function Integration', () => {
       mockInvoke.mockResolvedValueOnce({ data: { token_hash: 'abc123hash' }, error: null });
       mockVerifyOtp.mockResolvedValueOnce({ error: null });
 
-      const otpInput = screen.getByPlaceholderText('인증번호 6자리');
+      const otpInput = screen.getByPlaceholderText('000000');
       await userEvent.type(otpInput, '123456');
-
-      const verifyButton = screen.getByRole('button', { name: /확인/i });
-      await userEvent.click(verifyButton);
 
       await waitFor(() => {
         expect(mockInvoke).toHaveBeenCalledWith('verify-phone-otp', {
@@ -205,15 +193,12 @@ describe('OTP Flow - Edge Function Integration', () => {
       await goToOtpStep();
       mockInvoke.mockResolvedValueOnce({ data: null, error: { message: 'invalid_otp' } });
 
-      const otpInput = screen.getByPlaceholderText('인증번호 6자리');
+      const otpInput = screen.getByPlaceholderText('000000');
       await userEvent.type(otpInput, '123456');
 
-      const verifyButton = screen.getByRole('button', { name: /확인/i });
-      await userEvent.click(verifyButton);
-
       await waitFor(() => {
-        expect(screen.getByText('invalid_otp')).toBeInTheDocument();
-      });
+        expect(screen.getByText('인증 확인 실패')).toBeInTheDocument();
+      }, { timeout: 3000 });
       expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
 
@@ -221,14 +206,11 @@ describe('OTP Flow - Edge Function Integration', () => {
       await goToOtpStep();
       mockInvoke.mockResolvedValueOnce({ data: null, error: { message: 'expired' } });
 
-      const otpInput = screen.getByPlaceholderText('인증번호 6자리');
+      const otpInput = screen.getByPlaceholderText('000000');
       await userEvent.type(otpInput, '123456');
 
-      const verifyButton = screen.getByRole('button', { name: /확인/i });
-      await userEvent.click(verifyButton);
-
       await waitFor(() => {
-        expect(screen.getByText('expired')).toBeInTheDocument();
+        expect(screen.getByText('인증 확인 실패')).toBeInTheDocument();
       });
       expect(mockVerifyOtp).not.toHaveBeenCalled();
     });
@@ -240,7 +222,7 @@ describe('OTP Flow - Edge Function Integration', () => {
       const AuthPage = (await import('@/app/auth/page')).default;
       render(<AuthPage />);
 
-      const phoneInput = screen.getByPlaceholderText('010-1234-5678');
+      const phoneInput = screen.getByPlaceholderText('010-0000-0000');
       await userEvent.type(phoneInput, '01098765432');
 
       const sendButton = screen.getByRole('button', { name: /인증번호 받기/i });

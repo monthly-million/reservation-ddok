@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+function generateReferenceCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -49,12 +58,12 @@ export async function POST(request: NextRequest) {
     // Check idempotency
     const { data: existing } = await supabase
       .from('reservations')
-      .select('id')
+      .select('id, reference_code')
       .eq('idempotency_key', idempotency_key)
       .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({ success: true, id: existing.id });
+      return NextResponse.json({ success: true, id: existing.id, reference_code: existing.reference_code });
     }
 
     // Validate slot availability if date/time provided
@@ -72,20 +81,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Upsert customer
+    const { data: customer, error: customerErr } = await supabase
+      .from('customers')
+      .upsert(
+        { shop_id, name: customer_name.trim(), phone: phoneDigits },
+        { onConflict: 'shop_id,phone' }
+      )
+      .select('id')
+      .single();
+
+    if (customerErr || !customer) {
+      console.error('Customer upsert error:', customerErr);
+      return NextResponse.json({ error: '고객 정보 처리 실패' }, { status: 500 });
+    }
+
     // Insert reservation
+    const reference_code = generateReferenceCode();
     const { data, error } = await supabase
       .from('reservations')
       .insert({
         shop_id,
         customer_name: customer_name.trim(),
         customer_phone: phoneDigits,
+        customer_id: customer.id,
+        reference_code,
         answers: answers || [],
         idempotency_key,
         reserved_date: reserved_date || null,
         reserved_time: reserved_time || null,
         status: 'new',
       })
-      .select('id')
+      .select('id, reference_code, customer_id')
       .single();
 
     if (error) {
@@ -96,7 +123,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, id: data.id });
+    return NextResponse.json({ success: true, id: data.id, reference_code: data.reference_code, customer_id: data.customer_id });
   } catch (err) {
     console.error('Reservation API error:', err);
     return NextResponse.json(
